@@ -1,0 +1,111 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CandleSimulator from '../components/CandleSimulator.astro';
+import { getCollection } from 'astro:content';
+
+const modules = await getCollection('modules');
+const sorted = modules.sort((a, b) => a.data.urutan - b.data.urutan);
+const soalCount = modules.reduce((a, m) => a + m.data.soal.length, 0);
+---
+
+<Layout title="CandleLearn — Belajar Candlestick & Chart Pattern">
+  <section class="hero">
+    <div class="hero-badge">Bahasa Indonesia · Modular · Interaktif</div>
+    <h1>Baca candlestick seperti<br /><span class="grad">membaca pikiran pasar.</span></h1>
+    <p class="hero-sub">
+      Web belajar mandiri analisis teknikal: dari anatomi satu candle (OHLC,
+      body, shadow) sampai pola triple-candle, chart pattern, dan manajemen
+      risiko — semuanya dalam Bahasa Indonesia, plus simulator interaktif
+      yang bisa diutak-atik.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="/modul">Mulai belajar →</a>
+      <a class="btn btn-ghost" href="/tentang">Kenapa web ini dibuat?</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">{sorted.length}</span><span class="stat-lbl">modul</span></div>
+      <div class="stat"><span class="stat-num">{soalCount}</span><span class="stat-lbl">latihan soal</span></div>
+      <div class="stat"><span class="stat-num">60</span><span class="stat-lbl">candle simulator</span></div>
+      <div class="stat"><span class="stat-num" id="stat-selesai">0</span><span class="stat-lbl">selesai</span></div>
+    </div>
+  </section>
+
+  <section class="lab">
+    <h2>Coba simulatornya</h2>
+    <p style="color:var(--txt-2);margin:0 0 20px">
+      60 candle acak, lengkap dengan tooltip OHLC. Suntikkan pola sungguhan
+      (engulfing, morning star, doji) lalu nyalakan MA-20 untuk melihat
+      konteks trennya.
+    </p>
+    <CandleSimulator />
+  </section>
+
+  <section class="jalur-home">
+    <h2>Alur belajar</h2>
+    <div class="mod-list">
+      {sorted.map((m) => (
+        <a class="mod-item" href={`/modul/${m.id}`} data-slug={m.id}>
+          <div class="mod-num">{m.data.urutan}</div>
+          <div class="mod-body">
+            <h2 class="mod-title">{m.data.title}</h2>
+            <p class="mod-desc">{m.data.deskripsi}</p>
+            <div class="mod-meta">
+              <span>◈ {m.data.kategori}</span>
+              <span>⏱ {m.data.estimasi}</span>
+              <span>✓ {m.data.soal.length} soal</span>
+            </div>
+          </div>
+          <button class="mod-check" data-check={m.id} title="Tandai selesai">✓</button>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="cards">
+    <div class="card">
+      <div class="card-ico">🕯</div>
+      <h3>Baca materinya</h3>
+      <p>Anatomi candle, kriteria tiap pola, dan kapan pola itu valid —
+        ditulis ringkas untuk orang yang mau langsung praktik.</p>
+    </div>
+    <div class="card">
+      <div class="card-ico">◎</div>
+      <h3>Lihat polanya hidup</h3>
+      <p>Suntikkan engulfing, morning star, atau doji ke chart acak dan
+        perhatikan bentuknya. Semua digambar Canvas 2D sungguhan.</p>
+    </div>
+    <div class="card">
+      <div class="card-ico">✓</div>
+      <h3>Kerjakan soal</h3>
+      <p>Latihan soal per modul dengan kunci jawaban + pembahasan instan,
+        progress tersimpan otomatis di browser Anda.</p>
+    </div>
+    <div class="card">
+      <div class="card-ico">⚖</div>
+      <h3>Jaga risikonya</h3>
+      <p>Modul 8 menutup dengan position sizing, rasio risk-reward, dan
+        psikologi — karena pola tanpa manajemen risiko cuma dekorasi.</p>
+    </div>
+  </section>
+</Layout>
+
+<script is:inline>
+  const done = JSON.parse(localStorage.getItem('cl_progress') || '[]');
+  document.getElementById('stat-selesai').textContent = done.length;
+  document.querySelectorAll('[data-check]').forEach((btn) => {
+    const slug = btn.getAttribute('data-check');
+    if (window.CL.isDone(slug)) {
+      btn.classList.add('on');
+      btn.closest('.mod-item').classList.add('done');
+    }
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const on = window.CL.toggleDone(slug);
+      btn.classList.toggle('on', on);
+      btn.closest('.mod-item').classList.toggle('done', on);
+      document.getElementById('stat-selesai').textContent =
+        JSON.parse(localStorage.getItem('cl_progress') || '[]').length;
+    });
+  });
+</script>

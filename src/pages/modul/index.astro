@@ -1,0 +1,49 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const mods = (await getCollection('modules')).sort((a, b) => a.data.urutan - b.data.urutan);
+---
+
+<Layout title="Daftar Modul — CandleLearn">
+  <h1 style="font-size:2rem;margin:0 0 8px">Modul belajar</h1>
+  <p style="color:var(--txt-2);margin:0 0 32px">
+    Belajar urut dari modul 1. Klik modul untuk membaca, centang tombol di
+    kanan untuk menandai selesai — progress tersimpan di browser Anda.
+  </p>
+  <div class="mod-list">
+    {mods.map((m) => (
+      <a class="mod-item" href={`/modul/${m.id}`} data-slug={m.id}>
+        <div class="mod-num">{m.data.urutan}</div>
+        <div class="mod-body">
+          <h2 class="mod-title">{m.data.title}</h2>
+          <p class="mod-desc">{m.data.deskripsi}</p>
+          <div class="mod-meta">
+            <span>◈ {m.data.kategori}</span>
+            <span>⏱ {m.data.estimasi}</span>
+            <span>▶ {m.data.sumber.filter((s) => s.jenis === 'video').length} video</span>
+            <span>✓ {m.data.soal.length} soal</span>
+          </div>
+        </div>
+        <button class="mod-check" data-check={m.id} title="Tandai selesai">✓</button>
+      </a>
+    ))}
+  </div>
+</Layout>
+
+<script is:inline>
+  document.querySelectorAll('[data-check]').forEach((btn) => {
+    const slug = btn.getAttribute('data-check');
+    if (window.CL.isDone(slug)) {
+      btn.classList.add('on');
+      btn.closest('.mod-item').classList.add('done');
+    }
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const on = window.CL.toggleDone(slug);
+      btn.classList.toggle('on', on);
+      btn.closest('.mod-item').classList.toggle('done', on);
+    });
+  });
+</script>

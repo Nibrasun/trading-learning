@@ -1,0 +1,121 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'CandleLearn: web belajar trading candlestick dan chart pattern dalam Bahasa Indonesia — modul, latihan soal, dan simulator interaktif.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <script is:inline>
+      // Apply theme sebelum render — mencegah "flash" tema salah saat halaman pertama dimuat.
+      // cl_theme: 'auto' (default, ikut prefers-color-scheme) | 'light' | 'dark'
+      (function () {
+        const t = localStorage.getItem('cl_theme') || 'auto';
+        const dark =
+          t === 'dark' ||
+          (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">🕯</span>
+        <span class="brand-name">CandleLearn</span>
+      </a>
+      <nav class="topnav">
+        <a href="/modul">Modul</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/tentang">Tentang</a>
+      </nav>
+      <button class="theme-btn" id="theme-btn" type="button" title="Ganti tema (auto / terang / gelap)" aria-label="Ganti tema">
+        <span id="theme-ico">🌙</span>
+      </button>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="botbar">
+      <span>CandleLearn · belajar price action tanpa rasa takut</span>
+      <span class="botbar-hint">progress tersimpan di browser Anda (localStorage)</span>
+    </footer>
+
+    <script is:inline>
+      // Progress tracking global — localStorage based, no backend
+      window.CL = {
+        getDone: () => JSON.parse(localStorage.getItem('cl_progress') || '[]'),
+        isDone: (slug) => CL.getDone().includes(slug),
+        toggleDone: (slug) => {
+          const d = CL.getDone();
+          const i = d.indexOf(slug);
+          if (i >= 0) d.splice(i, 1); else d.push(slug);
+          localStorage.setItem('cl_progress', JSON.stringify(d));
+          return i < 0;
+        },
+        getWatched: () => JSON.parse(localStorage.getItem('cl_watched') || '[]'),
+        isWatched: (key) => CL.getWatched().includes(key),
+        toggleWatched: (key) => {
+          const d = CL.getWatched();
+          const i = d.indexOf(key);
+          if (i >= 0) d.splice(i, 1); else d.push(key);
+          localStorage.setItem('cl_watched', JSON.stringify(d));
+          return i < 0;
+        },
+        getQuiz: (slug) =>
+          JSON.parse(localStorage.getItem('cl_quiz_' + slug) || '{}'),
+        setQuiz: (slug, idx, ok) => {
+          const d = CL.getQuiz(slug);
+          d[idx] = ok;
+          localStorage.setItem('cl_quiz_' + slug, JSON.stringify(d));
+        },
+      };
+    </script>
+    <script is:inline>
+      // === Theme switcher: auto → light → dark → auto ===
+      (function () {
+        const btn = document.getElementById('theme-btn');
+        const ico = document.getElementById('theme-ico');
+        if (!btn || !ico) return;
+
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const order = ['auto', 'light', 'dark'];
+        const icons = { auto: '🌗', light: '☀️', dark: '🌙' };
+
+        function resolve() {
+          return (localStorage.getItem('cl_theme') || 'auto');
+        }
+        function paint() {
+          const t = resolve();
+          const dark = t === 'dark' || (t === 'auto' && mq.matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          ico.textContent = icons[t];
+          btn.title = `Tema: ${t}` + (t === 'auto'
+            ? ` (ikut sistem: ${mq.matches ? 'gelap' : 'terang'})`
+            : '');
+        }
+
+        paint();
+        mq.addEventListener('change', paint);
+        btn.addEventListener('click', () => {
+          const now = resolve();
+          const next = order[(order.indexOf(now) + 1) % order.length];
+          localStorage.setItem('cl_theme', next);
+          paint();
+        });
+      })();
+    </script>
+  </body>
+</html>

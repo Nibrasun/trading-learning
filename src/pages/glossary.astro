@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const GLOSS = [
+  { en: 'candlestick', id: 'lilin harga', kat: 'Dasar', def: 'Representasi pergerakan harga dalam satu periode: berbentuk badan (body) plus sumbu (shadow/wick). Warna menunjukkan arah: hijau/putih naik, merah/hitam turun.', mod: '01-dasar-candlestick' },
+  { en: 'OHLC', id: 'open-high-low-close', kat: 'Dasar', def: 'Empat harga pembentuk satu candle: Open (buka), High (tertinggi), Low (terendah), Close (tutup). Semua pola candle diturunkan dari relasi keempatnya.', mod: '01-dasar-candlestick' },
+  { en: 'body', id: 'badan candle', kat: 'Dasar', def: 'Selisih antara open dan close: Body = |Close − Open|. Body panjang berarti tekanan beli/jual kuat; body kecil berarti ragu-ragu.', mod: '01-dasar-candlestick' },
+  { en: 'shadow / wick', id: 'sumbu candle', kat: 'Dasar', def: 'Garis tipis di atas/bawah body yang menandai High dan Low. Upper shadow panjang = tekanan jual di atas; lower shadow panjang = tekanan beli dari bawah (rejection).', mod: '01-dasar-candlestick' },
+  { en: 'timeframe', id: 'kerangka waktu', kat: 'Dasar', def: 'Durasi satu candle: M15, H1, H4, D1, dan seterusnya. Timeframe besar lebih berbobot daripada kecil; sinyal kecil harus selaras dengan arah besar.', mod: '01-dasar-candlestick' },
+  { en: 'bullish / bearish', id: 'naik / turun', kat: 'Dasar', def: 'Bullish: harga bergerak naik (close di atas open). Bearish: harga bergerak turun (close di bawah open). Istilah dari bull (banteng menanduk ke atas) dan bear (beruang mencakar ke bawah).', mod: '01-dasar-candlestick' },
+  { en: 'doji', id: 'doji', kat: 'Single Candle', def: 'Candle dengan open ≈ close sehingga body nyaris nol. Tanda keraguan pasar; di ujung tren bisa menjadi peringatan reversal, apalagi bila bervolume.', mod: '02-pola-single-candle' },
+  { en: 'hammer', id: 'palu', kat: 'Single Candle', def: 'Body kecil di atas + lower shadow minimal 2× body, muncul setelah penurunan. Kaki panjang = buyer menolak harga rendah. Butuh konfirmasi candle hijau berikutnya.', mod: '02-pola-single-candle' },
+  { en: 'shooting star', id: 'bintang jatuh', kat: 'Single Candle', def: 'Kebalikan hammer: body kecil di bawah + upper shadow panjang setelah kenaikan. Tanda seller menekan dari atas; waspada reversal turun.', mod: '02-pola-single-candle' },
+  { en: 'marubozu', id: 'marubozu (botak)', kat: 'Single Candle', def: 'Candle tanpa shadow (atau sangat pendek): full body. Bullish marubozu = buyer menguasai penuh satu periode; bearish marubozu sebaliknya.', mod: '02-pola-single-candle' },
+  { en: 'bullish engulfing', id: 'menelan naik', kat: 'Double Candle', def: 'Candle merah kecil "ditelan" candle hijau berikutnya yang body-nya menutupi penuh. Sinyal reversal naik yang kuat, terutama di area support.', mod: '03-pola-double-candle' },
+  { en: 'bearish engulfing', id: 'menelan turun', kat: 'Double Candle', def: 'Candle hijau kecil ditelan candle merah berikutnya. Sinyal reversal turun, terutama di area resistance.', mod: '03-pola-double-candle' },
+  { en: 'harami', id: 'harami (hamil)', kat: 'Double Candle', def: 'Candle besar diikuti candle kecil yang "terkandung" di dalam body-nya. Tanda momentum melemah; versi bullish muncul setelah turun.', mod: '03-pola-double-candle' },
+  { en: 'tweezer top / bottom', id: 'penjepit atas / bawah', kat: 'Double Candle', def: 'Dua candle dengan High (top) atau Low (bottom) yang nyaris sama. Tweezer bottom = double rejection dari bawah, potensi reversal naik.', mod: '03-pola-double-candle' },
+  { en: 'morning star', id: 'bintang pagi', kat: 'Triple Candle', def: 'Pola 3 candle: merah besar → candle kecil (star) → hijau besar yang tutup di atas titik tengah candle pertama. Reversal naik klasik.', mod: '04-pola-triple-candle' },
+  { en: 'evening star', id: 'bintang sore', kat: 'Triple Candle', def: 'Kebalikan morning star di puncak kenaikan: hijau besar → star → merah besar. Reversal turun klasik.', mod: '04-pola-triple-candle' },
+  { en: 'three white soldiers', id: 'tiga prajurit putih', kat: 'Triple Candle', def: 'Tiga candle hijau beruntun dengan body panjang dan close makin tinggi. Tekanan beli konsisten; hati-hati bila muncul setelah rally panjang (jenuh).', mod: '04-pola-triple-candle' },
+  { en: 'support', id: 'penyangga', kat: 'Level', def: 'Zona harga tempat tekanan beli diprediksi menahan penurunan. Bekas low yang memantul ≥2× makin valid. Support yang jebol sering berubah jadi resistance.', mod: '05-support-resistance-trendline' },
+  { en: 'resistance', id: 'tahanan', kat: 'Level', def: 'Zona harga tempat tekanan jual diprediksi menahan kenaikan. Bekas high yang memantul ≥2× makin valid. Resistance yang jebol sering berubah jadi support.', mod: '05-support-resistance-trendline' },
+  { en: 'trendline', id: 'garis tren', kat: 'Level', def: 'Garis diagonal penghubung ≥2 low (uptrend) atau ≥2 high (downtrend). Sentuhan ketiga = konfirmasi. Makin landai dan makin sering disentuh, makin kuat.', mod: '05-support-resistance-trendline' },
+  { en: 'breakout & retest', id: 'jebol & uji ulang', kat: 'Level', def: 'Breakout: harga menembus level dengan body close di luarnya. Retest: harga kembali ke level jebol lalu memantul — entry paling aman.', mod: '05-support-resistance-trendline' },
+  { en: 'confluence', id: 'keselarasan', kat: 'Level', def: 'Berkumpulnya ≥2 alasan di satu zona (misal support + MA-20 + pola hammer + timeframe D1). Makin banyak confluence, makin tinggi probabilitas.', mod: '05-support-resistance-trendline' },
+  { en: 'head and shoulders', id: 'kepala dan bahu', kat: 'Reversal', def: 'Tiga puncak: bahu kiri – kepala (lebih tinggi) – bahu kanan, dengan neckline sebagai pemicu. Jebol neckline = target turun sejauh tinggi kepala.', mod: '06-pola-reversal' },
+  { en: 'double top / bottom', id: 'puncak / lembah ganda', kat: 'Reversal', def: 'Dua puncak (M) atau dua lembah (W) sejajar. Konfirmasi saat neckline di tengahnya jebol; target = tinggi pola.', mod: '06-pola-reversal' },
+  { en: 'triangle', id: 'segitiga', kat: 'Kontinuasi', def: 'Harga menyempit di antara dua garis: ascending (atas datar, bias naik), descending (bawah datar, bias turun), symmetric (netral, ikut arah jebolnya).', mod: '07-pola-continuation' },
+  { en: 'flag & pennant', id: 'bendera & umbul-umbul', kat: 'Kontinuasi', def: 'Pola istirahat setelah gerakan tajam (tiang): flag = kanal miring, pennant = segitiga mini. Jebol searah tiang = tren lanjut; target = tinggi tiang.', mod: '07-pola-continuation' },
+  { en: 'stop loss', id: 'batas rugi', kat: 'Risiko', def: 'Harga keluar otomatis saat analisis salah. Wajib di bawah support/logis terakhir, bukan angka asal. Tanpa stop loss, satu trade bisa menghapus sepuluh kemenangan.', mod: '08-manajemen-risiko-psikologi' },
+  { en: 'risk-reward ratio', id: 'rasio risiko-imbal', kat: 'Risiko', def: 'RR = target profit ÷ risiko. Minimal 1:2 — dengan winrate 40% pun akun masih tumbuh. Pola yang "bagus" tapi RR 1:0,5 tetap trade yang buruk.', mod: '08-manajemen-risiko-psikologi' },
+  { en: 'position sizing', id: 'ukuran posisi', kat: 'Risiko', def: 'Lot/saham = risiko rupiah ÷ jarak entry–stop loss. Risiko per trade 1–2% modal. Inilah yang membuat trader selamat dari 5 loss beruntun.', mod: '08-manajemen-risiko-psikologi' },
+  { en: 'trading journal', id: 'jurnal trading', kat: 'Risiko', def: 'Catatan tiap trade: alasan entry, screenshot chart, emosi, hasil. Review mingguan jurnal = satu-satunya cara naik kelas yang terbukti.', mod: '08-manajemen-risiko-psikologi' },
+];
+
+const kats = [...new Set(GLOSS.map((g) => g.kat))];
+---
+
+<Layout title="Glossary — CandleLearn">
+  <h1 style="font-size:2rem;margin:0 0 8px">Glossary</h1>
+  <p style="color:var(--txt-2);margin:0 0 24px">
+    Kamus istilah trading EN ↔ ID. Klik modul untuk lompat ke pembahasan.
+  </p>
+  <input class="search-box" id="gloss-search" type="search" placeholder="Cari istilah (English atau Indonesia)…" />
+  <div class="kat-filter" id="gloss-kat">
+    {['Semua', ...kats].map((k, i) => (
+      <button class={`kat-pill ${i === 0 ? 'on' : ''}`} data-kat={k}>{k}</button>
+    ))}
+  </div>
+  <div class="gloss-grid" id="gloss-grid">
+    {GLOSS.map((g) => (
+      <div class="gloss-item" data-kat={g.kat} data-q={`${g.en} ${g.id} ${g.def}`.toLowerCase()}>
+        <span class="gloss-term">{g.en}</span><span class="gloss-id">{g.id}</span>
+        <p class="gloss-def">{g.def}</p>
+        <a class="gloss-link" href={`/modul/${g.mod}`}>→ modul terkait</a>
+      </div>
+    ))}
+  </div>
+
+  <script is:inline>
+    const grid = document.getElementById('gloss-grid');
+    const items = [...grid.querySelectorAll('.gloss-item')];
+    const search = document.getElementById('gloss-search');
+    let activeKat = 'Semua';
+
+    function apply() {
+      const q = search.value.trim().toLowerCase();
+      items.forEach((it) => {
+        const matchKat = activeKat === 'Semua' || it.dataset.kat === activeKat;
+        const matchQ = !q || it.dataset.q.includes(q);
+        it.style.display = matchKat && matchQ ? '' : 'none';
+      });
+    }
+    search.addEventListener('input', apply);
+    document.querySelectorAll('.kat-pill').forEach((p) => {
+      p.addEventListener('click', () => {
+        document.querySelectorAll('.kat-pill').forEach((x) => x.classList.remove('on'));
+        p.classList.add('on');
+        activeKat = p.dataset.kat;
+        apply();
+      });
+    });
+  </script>
+</Layout>

@@ -1,0 +1,235 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = "Simulator Candlestick" } = Astro.props;
+---
+
+<div class="viewer-card" id="cs-card">
+  <div class="viewer-head">
+    <h3>🕯 {title}</h3>
+    <span class="views-label">Canvas 2D · 60 candle · random walk</span>
+  </div>
+  <div class="viewer-canvas-wrap">
+    <canvas id="cs-canvas"></canvas>
+    <div class="viewer-hint">Arahkan kursor / ketuk candle untuk lihat OHLC</div>
+    <div id="cs-tip" class="cs-tip" hidden></div>
+  </div>
+  <div class="viewer-ctl cs-controls">
+    <button class="cs-btn" id="cs-random" type="button">🎲 Acak baru</button>
+    <button class="cs-btn" id="cs-engulf" type="button">Bullish Engulfing</button>
+    <button class="cs-btn" id="cs-mstar" type="button">Morning Star</button>
+    <button class="cs-btn" id="cs-doji" type="button">Doji</button>
+    <label class="cs-ma"><input type="checkbox" id="cs-ma-toggle" checked /> MA-20</label>
+  </div>
+  <div class="viewer-legend">
+    <span><span class="legend-dot" style="background:#22c55e"></span>Bullish (close &gt; open)</span>
+    <span><span class="legend-dot" style="background:#ef4444"></span>Bearish (close &lt; open)</span>
+    <span><span class="legend-dot" style="background:#f59e0b"></span>MA-20</span>
+  </div>
+</div>
+
+<style>
+  .cs-tip {
+    position: absolute; z-index: 5; pointer-events: none;
+    background: rgba(6, 18, 31, 0.94); color: #e6eaf2;
+    border: 1px solid var(--line); border-radius: 8px;
+    font-family: var(--mono); font-size: 0.72rem; line-height: 1.55;
+    padding: 8px 12px; white-space: nowrap;
+    transform: translate(-50%, calc(-100% - 14px));
+  }
+  .cs-tip .up { color: #22c55e; font-weight: 700; }
+  .cs-tip .dn { color: #ef4444; font-weight: 700; }
+  .cs-tip .lbl { color: #f59e0b; }
+  .cs-controls { gap: 10px; }
+  .cs-btn {
+    font: inherit; font-size: 0.82rem; font-weight: 600;
+    color: var(--txt-2); background: var(--bg-2);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 14px; min-height: 40px; cursor: pointer;
+  }
+  .cs-btn:hover { border-color: var(--acc); color: var(--txt); }
+  .cs-btn:active { transform: translateY(1px); }
+  .cs-ma { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--txt-2); cursor: pointer; }
+  .cs-ma input { width: 16px; height: 16px; accent-color: #f59e0b; cursor: pointer; }
+</style>
+
+<script is:inline>
+(function () {
+  var canvas = document.getElementById('cs-canvas');
+  if (!canvas) return;
+  var wrap = canvas.parentElement;
+  var tip = document.getElementById('cs-tip');
+  var N = 60, seed = 1234567;
+  var data = [];
+  var labels = {};
+  var showMA = true;
+
+  function rnd() {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+
+  function gen() {
+    data = []; labels = {};
+    var price = 100;
+    for (var i = 0; i < N; i++) {
+      var o = price;
+      var drift = (rnd() - 0.485) * 3.2;
+      var c = Math.max(1, o + drift);
+      var h = Math.max(o, c) + rnd() * 1.1;
+      var l = Math.min(o, c) - rnd() * 1.1;
+      data.push({ o: o, h: h, l: l, c: c });
+      price = c;
+    }
+  }
+
+  function maArr(p) {
+    var out = [];
+    for (var i = 0; i < data.length; i++) {
+      if (i < p - 1) { out.push(null); continue; }
+      var s = 0;
+      for (var j = i - p + 1; j <= i; j++) s += data[j].c;
+      out.push(s / p);
+    }
+    return out;
+  }
+
+  function injectEngulfing() {
+    var n = data.length;
+    var ref = data[n - 3].c;
+    var c1o = ref, c1c = ref - 2.4;
+    var c2o = c1c - 0.4, c2c = c1o + 1.4;
+    data[n - 2] = { o: c1o, h: c1o + 0.3, l: c1c - 0.3, c: c1c };
+    data[n - 1] = { o: c2o, h: c2c + 0.3, l: c2o - 0.3, c: c2c };
+    labels = {}; labels[n - 1] = 'Bullish Engulfing';
+    draw();
+  }
+
+  function injectMorningStar() {
+    var n = data.length;
+    var ref = data[n - 4].c;
+    var a_o = ref, a_c = ref - 3.0;
+    var s_o = a_c - 0.5, s_c = s_o + 0.35;
+    var b_o = s_c, b_c = a_o + 0.6;
+    data[n - 3] = { o: a_o, h: a_o + 0.2, l: a_c - 0.2, c: a_c };
+    data[n - 2] = { o: s_o, h: s_o + 0.5, l: s_c - 0.5, c: s_c };
+    data[n - 1] = { o: b_o, h: b_c + 0.3, l: b_o - 0.2, c: b_c };
+    labels = {}; labels[n - 3] = '1'; labels[n - 2] = '★'; labels[n - 1] = 'Morning Star';
+    draw();
+  }
+
+  function injectDoji() {
+    var n = data.length;
+    var ref = data[n - 2].c;
+    data[n - 1] = { o: ref, h: ref + 1.3, l: ref - 1.3, c: ref + 0.05 };
+    labels = {}; labels[n - 1] = 'Doji';
+    draw();
+  }
+
+  function draw() {
+    var W = wrap.clientWidth, H = 380;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var dark = document.documentElement.dataset.theme !== 'light';
+    ctx.fillStyle = dark ? '#11151d' : '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    var ma = maArr(20);
+    var lo = Infinity, hi = -Infinity;
+    data.forEach(function (d) { lo = Math.min(lo, d.l); hi = Math.max(hi, d.h); });
+    if (showMA) ma.forEach(function (v) { if (v !== null) { lo = Math.min(lo, v); hi = Math.max(hi, v); } });
+    var pad = (hi - lo) * 0.12 || 1; lo -= pad; hi += pad;
+
+    var padL = 8, padR = 56, padT = 26, padB = 18;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    function y(p) { return padT + (1 - (p - lo) / (hi - lo)) * plotH; }
+    var cw = plotW / N, bw = Math.max(2, cw * 0.62);
+
+    // grid + label harga kanan
+    ctx.strokeStyle = dark ? '#1e2533' : '#e2e8f1';
+    ctx.fillStyle = dark ? '#6f7d95' : '#5b6884';
+    ctx.font = '10px ui-monospace, monospace'; ctx.lineWidth = 1;
+    for (var g = 0; g <= 4; g++) {
+      var pv = lo + pad + ((hi - lo - 2 * pad) * g) / 4;
+      var gy = y(pv);
+      ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W - padR, gy); ctx.stroke();
+      ctx.fillText(pv.toFixed(1), W - padR + 6, gy + 3);
+    }
+
+    // MA-20
+    if (showMA) {
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.6; ctx.beginPath();
+      var started = false;
+      for (var i = 0; i < N; i++) {
+        if (ma[i] === null) continue;
+        var mx = padL + i * cw + cw / 2, my = y(ma[i]);
+        if (!started) { ctx.moveTo(mx, my); started = true; }
+        else ctx.lineTo(mx, my);
+      }
+      ctx.stroke();
+    }
+
+    // candles
+    for (var k = 0; k < N; k++) {
+      (function (k) {
+        var d = data[k];
+        var up = d.c >= d.o;
+        var col = up ? '#22c55e' : '#ef4444';
+        var x = padL + k * cw + cw / 2;
+        ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(x, y(d.h)); ctx.lineTo(x, y(d.l)); ctx.stroke();
+        var yo = y(d.o), yc = y(d.c);
+        var top = Math.min(yo, yc), hgt = Math.max(1.5, Math.abs(yc - yo));
+        ctx.fillRect(x - bw / 2, top, bw, hgt);
+        if (labels[k]) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.font = 'bold 10px ui-monospace, monospace';
+          ctx.textAlign = 'center';
+          var ly = up ? y(d.h) - 8 : y(d.l) + 14;
+          ctx.fillText(labels[k], Math.min(Math.max(x, 40), W - 60), ly);
+          ctx.textAlign = 'left';
+        }
+      })(k);
+    }
+    canvas._geom = { padL: padL, cw: cw, N: N };
+  }
+
+  function showTip(evt) {
+    var g = canvas._geom;
+    if (!g) return;
+    var rect = canvas.getBoundingClientRect();
+    var px = (evt.touches && evt.touches[0] ? evt.touches[0].clientX : evt.clientX) - rect.left;
+    var idx = Math.floor((px - g.padL) / g.cw);
+    if (idx < 0 || idx >= g.N) { tip.hidden = true; return; }
+    var d = data[idx];
+    var up = d.c >= d.o;
+    var html = '#' + (idx + 1) + ' <span class="' + (up ? 'up' : 'dn') + '">' +
+      (up ? '▲ BULL' : '▼ BEAR') + '</span><br>' +
+      'O ' + d.o.toFixed(2) + ' · H ' + d.h.toFixed(2) + '<br>' +
+      'L ' + d.l.toFixed(2) + ' · C ' + d.c.toFixed(2);
+    if (labels[idx]) html += '<br><span class="lbl">◈ ' + labels[idx] + '</span>';
+    tip.innerHTML = html;
+    tip.hidden = false;
+    tip.style.left = Math.min(Math.max(px, 80), rect.width - 80) + 'px';
+    tip.style.top = 'auto'; tip.style.bottom = '8px';
+  }
+
+  document.getElementById('cs-random').addEventListener('click', function () { seed = (Date.now() % 100000) + 1; gen(); draw(); });
+  document.getElementById('cs-engulf').addEventListener('click', injectEngulfing);
+  document.getElementById('cs-mstar').addEventListener('click', injectMorningStar);
+  document.getElementById('cs-doji').addEventListener('click', injectDoji);
+  document.getElementById('cs-ma-toggle').addEventListener('change', function (e) { showMA = e.target.checked; draw(); });
+  canvas.addEventListener('mousemove', showTip);
+  canvas.addEventListener('mouseleave', function () { tip.hidden = true; });
+  canvas.addEventListener('click', showTip);
+  window.addEventListener('resize', draw);
+
+  gen();
+  draw();
+})();
+</script>

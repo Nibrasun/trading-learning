@@ -1,0 +1,64 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Tentang — CandleLearn">
+  <article class="article" style="max-width:720px">
+    <h1>Tentang web ini</h1>
+    <p class="lead">
+      CandleLearn adalah web belajar mandiri analisis teknikal — candlestick
+      dan chart pattern — yang ditulis dalam Bahasa Indonesia.
+    </p>
+
+    <h2>Kenapa dibuat</h2>
+    <p>
+      Sebagian besar materi price action di internet berbahasa Inggris dan
+      berasumsi pembaca sudah paham dasarnya. Web ini dibedakan dengan:
+      ditulis dalam Bahasa Indonesia (istilah teknis tetap dalam English),
+      mulai dari nol (apa itu OHLC?), tiap pola punya kriteria valid yang
+      tegas, dan dilengkapi simulator candlestick yang bisa diutak-atik
+      langsung.
+    </p>
+
+    <h2>Cara memakai</h2>
+    <ol>
+      <li>Baca modul urut dari nomor 1. Tiap modul butuh 1-3 jam.</li>
+      <li>Mainkan simulator di halaman depan — suntikkan pola dan hafalkan bentuknya.</li>
+      <li>Kerjakan soal latihan di akhir tiap modul sampai semua benar.</li>
+      <li>Jangan lewati modul 8 (manajemen risiko) sebelum praktik dengan uang sungguhan.</li>
+      <li>Centang modul yang selesai. Progress disimpan di browser Anda.</li>
+    </ol>
+
+    <h2>Sumber materi</h2>
+    <p>
+      Konsep pola candle mengikuti literatur klasik Steve Nison
+      (Japanese Candlestick Charting Techniques) dan statistik pola Thomas
+      Bulkowski (Encyclopedia of Chart Patterns). Referensi umum: John Murphy
+      (Technical Analysis of the Financial Markets) untuk chart pattern dan
+      Mark Douglas (Trading in the Zone) untuk psikologi.
+    </p>
+
+    <blockquote>
+      ⚠️ <strong>Bukan nasihat keuangan.</strong> Semua materi di web ini
+      bertujuan edukasi. Trading melibatkan risiko kerugian. Jangan pernah
+      mempertaruhkan uang yang tidak siap Anda hilangkan, dan selalu uji
+      strategi di akun demo terlebih dahulu.
+    </blockquote>
+
+    <h2>Catatan teknis</h2>
+    <p>
+      Dibangun dengan Astro (static site) + Canvas 2D vanilla untuk simulator
+      — tanpa framework, tanpa library chart. Progress tracking disimpan di
+      <code>localStorage</code> browser, jadi tidak ada data yang dikirim ke
+      server dan tidak perlu akun.
+    </p>
+
+    <h2>Update mendatang</h2>
+    <ul>
+      <li>Modul indikator: RSI, MACD, dan volume profile</li>
+      <li>Modul multi-timeframe analysis dengan contoh kasus penuh</li>
+      <li>Mode latihan "tebak candle berikutnya" di simulator</li>
+      <li>Bank soal tambahan per pola (target 10 soal per modul)</li>
+    </ul>
+  </article>
+</Layout>

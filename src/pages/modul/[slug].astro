@@ -1,0 +1,314 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import CandleSimulator from '../../components/CandleSimulator.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const mods = await getCollection('modules');
+  return mods.map((m) => ({ params: { slug: m.id }, props: { mod: m } }));
+}
+
+const { mod } = Astro.props;
+const { Content, headings } = await render(mod);
+const slug = mod.id;
+
+const hasRumus = mod.data.rumus.length > 0;
+const hasKasus = !!mod.data.studi_kasus;
+const hasAnalisis = !!mod.data.analisis && mod.data.analisis.langkah.length > 0;
+const hasSolving = !!mod.data.solving && mod.data.solving.langkah.length > 0;
+const hasSoal = mod.data.soal.length > 0;
+
+const tabs = [
+  { id: 'materi', label: 'Materi', show: true },
+  { id: 'rumus', label: 'Rumus', show: hasRumus },
+  { id: 'kasus', label: 'Studi Kasus', show: hasKasus },
+  { id: 'analisis', label: 'Analisis', show: hasAnalisis },
+  { id: 'solving', label: 'Solving', show: hasSolving },
+  { id: 'latihan', label: `Latihan (${mod.data.soal.length})`, show: hasSoal },
+  { id: 'sumber', label: 'Sumber', show: true },
+];
+---
+
+<Layout title={`${mod.data.title} — CandleLearn`} description={mod.data.deskripsi}>
+  <div class="article-wrap">
+    <aside class="toc">
+      <h4>Daftar isi</h4>
+      <ul>
+        {headings.filter((h) => h.depth <= 3).map((h) => (
+          <li><a href={`#${h.slug}`} data-toc>{h.text}</a></li>
+        ))}
+      </ul>
+      <h4 style="margin-top:24px">Sumber</h4>
+      <ul>
+        {mod.data.sumber.map((s) => (
+          <li>
+            <a href={s.url || '#'} target="_blank" rel="noopener">
+              {s.jenis === 'video' ? '▶' : '◈'} {s.judul}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </aside>
+
+    <article class="article" data-modslug={slug}>
+      <h1>{mod.data.title}</h1>
+      <p class="lead">{mod.data.deskripsi}</p>
+      <div class="mod-meta" style="margin-bottom:8px">
+        <span>◈ {mod.data.kategori}</span>
+        <span>⏱ {mod.data.estimasi}</span>
+        <button class="mod-check" data-check={slug} title="Tandai selesai">✓</button>
+      </div>
+
+      <nav class="tabs" aria-label="Navigasi belajar">
+        {tabs.filter((t) => t.show).map((t, i) => (
+          <button class={`tab-btn${i === 0 ? ' on' : ''}`} data-tabbtn={t.id}>{t.label}</button>
+        ))}
+      </nav>
+
+      <section class="tab-pane" data-tabpane="materi">
+        {slug === '01-dasar-candlestick' && <CandleSimulator title="Coba bentuk candle-nya" />}
+        <Content />
+      </section>
+
+      {hasRumus && (
+        <section class="tab-pane" data-tabpane="rumus" hidden>
+          <h2 style="border:none;padding-top:8px">Rumus kunci</h2>
+          <p style="color:var(--txt-2)">Semua ukuran dan aturan main modul ini dalam satu tempat.</p>
+          <div class="rumus-grid">
+            {mod.data.rumus.map((r) => (
+              <div class="rumus-card">
+                <p class="rumus-nama">{r.nama}</p>
+                <p class="rumus-f">{r.rumus}</p>
+                {r.keterangan && <p class="rumus-ket">{r.keterangan}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {hasKasus && (
+        <section class="tab-pane" data-tabpane="kasus" hidden>
+          <h2 style="border:none;padding-top:8px">{mod.data.studi_kasus!.judul}</h2>
+          <div class="kasus-box">
+            <p>{mod.data.studi_kasus!.cerita}</p>
+            {mod.data.studi_kasus!.diketahui.length > 0 && (
+              <>
+                <h4>Diketahui</h4>
+                <ul class="diket-list">
+                  {mod.data.studi_kasus!.diketahui.map((d) => <li>{d}</li>)}
+                </ul>
+              </>
+            )}
+            <h4>Ditanya</h4>
+            <p class="ditanya">{mod.data.studi_kasus!.ditanya}</p>
+          </div>
+          <p style="color:var(--txt-3);font-size:0.86rem">Jangan intip tab Solving dulu — coba analisis sendiri, lalu cocokkan di tab Analisis.</p>
+        </section>
+      )}
+
+      {hasAnalisis && (
+        <section class="tab-pane" data-tabpane="analisis" hidden>
+          <h2 style="border:none;padding-top:8px">Analisis</h2>
+          {mod.data.analisis!.ringkasan && <p style="color:var(--txt-2)">{mod.data.analisis!.ringkasan}</p>}
+          <ol class="step-list">
+            {mod.data.analisis!.langkah.map((s) => <li>{s}</li>)}
+          </ol>
+        </section>
+      )}
+
+      {hasSolving && (
+        <section class="tab-pane" data-tabpane="solving" hidden>
+          <h2 style="border:none;padding-top:8px">Solving langkah-demi-langkah</h2>
+          {mod.data.solving!.pengantar && <p style="color:var(--txt-2)">{mod.data.solving!.pengantar}</p>}
+          <ol class="step-list">
+            {mod.data.solving!.langkah.map((s) => <li>{s}</li>)}
+          </ol>
+          <div class="hasil-box">Hasil: <strong>{mod.data.solving!.hasil}</strong></div>
+        </section>
+      )}
+
+      <section class="tab-pane" data-tabpane="sumber" hidden>
+      <div class="sumber-list">
+        <h2 style="border:none;padding-top:8px">Sumber belajar</h2>
+        {mod.data.sumber.map((s, i) => (
+          <div class="sumber-item">
+            <div class={`sumber-thumb ${s.jenis}`}>{s.jenis === 'video' ? '▶' : '◈'}</div>
+            <div class="sumber-body">
+              <h3 class="sumber-title">
+                {s.url ? <a href={s.url} target="_blank" rel="noopener" style="color:inherit;text-decoration:none">{s.judul}</a> : s.judul}
+              </h3>
+              <p class="sumber-meta">
+                {s.channel && <span>{s.channel} · </span>}
+                {s.pengarang && <span>{s.pengarang} · </span>}
+                {s.durasi && <span>{s.durasi}</span>}
+              </p>
+              {s.catatan && <p class="sumber-note">{s.catatan}</p>}
+              {s.timestamps && (
+                <div class="ts-list">
+                  {s.timestamps.map((t) => (
+                    s.url
+                      ? <a class="ts-chip" href={`${s.url}&t=${t.t.replace(':', 'm')}s`} target="_blank" rel="noopener">{t.t} {t.label}</a>
+                      : <span class="ts-chip">{t.t} {t.label}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button class="sumber-check" data-watch={`${slug}:${i}`} title="Sudah ditonton/dibaca">✓</button>
+          </div>
+        ))}
+      </div>
+      </section>
+
+      {mod.data.soal.length > 0 && (
+        <section class="tab-pane" data-tabpane="latihan" hidden>
+        <section class="kuis">
+          <h2 style="border:none;padding-top:8px">Latihan soal</h2>
+          <div class="kuis-score">
+            <span>Skor:</span>
+            <span class="score-num" id="kuis-score">0/{mod.data.soal.length}</span>
+            <span style="color:var(--txt-3);font-size:0.85rem" id="kuis-state">belum dijawab</span>
+            <button class="kuis-reset" id="kuis-reset">Reset</button>
+          </div>
+          {mod.data.soal.map((q, qi) => (
+            <div class="kuis-card" data-q={qi}>
+              <p class="kuis-q"><span class="kuis-q-num">Soal {qi + 1}.</span> {q.soal}</p>
+              <div class="kuis-opsi">
+                {q.opsi.map((op, oi) => (
+                  <button class="kuis-opt" data-q={qi} data-o={oi} data-ans={q.jawaban}>
+                    <span class="opt-key">{String.fromCharCode(97 + oi)}</span>
+                    <span>{op}</span>
+                  </button>
+                ))}
+              </div>
+              <div class="kuis-feedback" data-fb={qi}></div>
+            </div>
+          ))}
+        </section>
+        </section>
+      )}
+    </article>
+  </div>
+</Layout>
+
+<script>
+  // ---- tab belajar: materi/rumus/kasus/analisis/solving/latihan/sumber ----
+  const article = document.querySelector('[data-modslug]');
+  const modSlug = article?.getAttribute('data-modslug') || '';
+  const tabBtns = [...document.querySelectorAll('[data-tabbtn]')] as HTMLElement[];
+  const panes = [...document.querySelectorAll('[data-tabpane]')] as HTMLElement[];
+
+  function activateTab(id: string, pushHash = true) {
+    if (!panes.some((p) => p.getAttribute('data-tabpane') === id)) return;
+    tabBtns.forEach((b) => b.classList.toggle('on', b.getAttribute('data-tabbtn') === id));
+    panes.forEach((p) => { (p as HTMLElement).hidden = p.getAttribute('data-tabpane') !== id; });
+    try { localStorage.setItem('cl_tab_' + modSlug, id); } catch { /* abaikan */ }
+    if (pushHash) history.replaceState(null, '', '#' + id);
+  }
+
+  tabBtns.forEach((b) => {
+    b.addEventListener('click', () => activateTab(b.getAttribute('data-tabbtn') || 'materi'));
+  });
+
+  // Tab awal: hash URL > tab terakhir > materi
+  (function initTab() {
+    const h = (location.hash || '').replace('#', '');
+    let saved = '';
+    try { saved = localStorage.getItem('cl_tab_' + modSlug) || ''; } catch { saved = ''; }
+    activateTab(h || saved || 'materi', false);
+  })();
+
+  // Link daftar isi selalu mendarat di tab Materi
+  document.querySelectorAll('[data-toc]').forEach((a) => {
+    a.addEventListener('click', () => activateTab('materi', false));
+  });
+
+  // ---- progress: modul selesai ----
+  const cb = document.querySelector('[data-check]');
+  if (cb) {
+    const slug = cb.getAttribute('data-check');
+    if (window.CL.isDone(slug)) cb.classList.add('on');
+    cb.addEventListener('click', () => {
+      const on = window.CL.toggleDone(slug);
+      cb.classList.toggle('on', on);
+    });
+  }
+
+  // ---- progress: sumber dibaca ----
+  document.querySelectorAll('[data-watch]').forEach((b) => {
+    const key = b.getAttribute('data-watch');
+    if (window.CL.isWatched(key)) b.classList.add('on');
+    b.addEventListener('click', () => {
+      const on = window.CL.toggleWatched(key);
+      b.classList.toggle('on', on);
+    });
+  });
+
+  // ---- kuis ----
+  const slug = document.querySelector('[data-check]')?.getAttribute('data-check') || '';
+  const total = document.querySelectorAll('.kuis-card').length;
+  const scoreEl = document.getElementById('kuis-score');
+  const stateEl = document.getElementById('kuis-state');
+  const answered: Record<number, boolean> = {};
+
+  function refreshScore() {
+    const n = Object.keys(answered).length;
+    const benar = Object.values(answered).filter(Boolean).length;
+    if (scoreEl) scoreEl.textContent = `${benar}/${total}`;
+    if (stateEl) {
+      stateEl.textContent = n === 0
+        ? 'belum dijawab'
+        : n === total ? (benar === total ? 'semua benar! ✓' : `${benar} dari ${total} benar`) : `${n}/${total} dijawab`;
+    }
+  }
+
+  document.querySelectorAll('.kuis-opt').forEach((btn) => {
+    const qi = parseInt(btn.getAttribute('data-q') || '0');
+    const oi = parseInt(btn.getAttribute('data-o') || '0');
+    const ans = parseInt(btn.getAttribute('data-ans') || '0');
+    btn.addEventListener('click', () => {
+      const card = document.querySelector(`.kuis-card[data-q="${qi}"]`);
+      const fb = document.querySelector(`[data-fb="${qi}"]`);
+      const correct = oi === ans;
+      answered[qi] = correct;
+      window.CL.setQuiz(slug, qi, correct);
+      card?.querySelectorAll('.kuis-opt').forEach((b) => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      card?.querySelectorAll('.kuis-opt').forEach((b) => {
+        const bo = parseInt(b.getAttribute('data-o') || '0');
+        b.classList.toggle('correct', bo === ans);
+        b.classList.toggle('wrong', bo === oi && !correct);
+      });
+      if (fb) {
+        const pembahasan = JSON.parse(
+          document.getElementById('quiz-data')?.textContent || '[]'
+        )[qi]?.pembahasan || '';
+        fb.className = 'kuis-feedback show ' + (correct ? 'ok' : 'no');
+        fb.innerHTML = correct
+          ? `<strong>Benar.</strong> ${pembahasan}`
+          : `<strong>Salah.</strong> Jawaban yang benar adalah <strong>${String.fromCharCode(97 + ans)}</strong>. ${pembahasan}`;
+      }
+      refreshScore();
+    });
+  });
+
+  // load state kuis tersimpan
+  const saved = window.CL.getQuiz(slug);
+  Object.entries(saved).forEach(([k, v]) => {
+    const qi = parseInt(k);
+    const card = document.querySelector(`.kuis-card[data-q="${qi}"]`);
+    const ans = parseInt(card?.querySelector('.kuis-opt')?.getAttribute('data-ans') || '0');
+    card?.querySelectorAll('.kuis-opt').forEach((b) => {
+      const bo = parseInt(b.getAttribute('data-o') || '0');
+      if (bo === ans) b.classList.add('correct');
+    });
+    answered[qi] = !!v;
+  });
+  refreshScore();
+
+  document.getElementById('kuis-reset')?.addEventListener('click', () => {
+    localStorage.removeItem('cl_quiz_' + slug);
+    location.reload();
+  });
+</script>
+
+<script id="quiz-data" type="application/json" set:html={JSON.stringify(mod.data.soal)} />
